@@ -36,7 +36,8 @@ module.exports = async (req, res) => {
                                '5. Property Prices\n' +
                                '6. Available Locations\n' +
                                '7. Tell a Joke\n' +
-                               '8. Exit';
+                               '8. Exit\n';
+                               'Type Menu to return'
             } else if (receivedMessage === '1') {
                 responseText = 'This is the Real Estate Bot designed to assist you with your property needs. You can buy, rent, or inquire about mortgages. Just select an option from the menu to get started!';
             } else if (['2', '3', '4', '5', '6', '7', '8'].includes(receivedMessage)) {
