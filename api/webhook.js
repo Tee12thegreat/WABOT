@@ -37,6 +37,8 @@ module.exports = async (req, res) => {
                                '6. Available Locations\n' +
                                '7. Tell a Joke\n' +
                                '8. Exit';
+            } else if (receivedMessage === '1') {
+                responseText = 'This is the Real Estate Bot designed to assist you with your property needs. You can buy, rent, or inquire about mortgages. Just select an option from the menu to get started!';
             } else if (['2', '3', '4', '5', '6', '7', '8'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage; // Update state
                 responseText = handleOptionSelection(receivedMessage);
@@ -86,6 +88,11 @@ module.exports = async (req, res) => {
         default:
             responseText = 'Welcome! Please type "Menu" or "1" for guidance on how to interact with me.';
             break;
+    }
+
+    // Reset on goodbye
+    if (receivedMessage === 'bye' || receivedMessage === 'goodbye' || userSessions[fromNumber].state === '8') {
+        userSessions[fromNumber].state = 'menu'; // Reset state for a fresh start
     }
 
     message.body(responseText);
