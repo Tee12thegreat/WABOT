@@ -1,0 +1,12 @@
+{
+  "name": "whatsapp chatbot",
+  "version": "1.0.0",
+  "main": "api/webhook.js",
+  "scripts": {
+    "start": "vercel dev" 
+  },
+  "dependencies": {
+    "twilio": "^3.66.0",  
+    "node-fetch": "^2.6.1"
+  }
+}
