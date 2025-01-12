@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
         case 'menu':
             if (receivedMessage === 'menu' || receivedMessage === '1') {
                 responseText = 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
-                               '1. Help\n' +
+                               '1. Services\n' +
                                '2. Buy Property\n' +
                                '3. Rent Property\n' +
                                '4. Mortgage/Loan Information\n' +
