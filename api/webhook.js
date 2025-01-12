@@ -24,76 +24,77 @@ module.exports = async (req, res) => {
 
     let responseText;
 
-    // State-based response handling
-    switch (userSessions[fromNumber].state) {
-        case 'menu':
-            if (receivedMessage === 'menu' || receivedMessage === '1') {
-                responseText = 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
-                               '1. Services\n' +
-                               '2. Buy Property\n' +
-                               '3. Rent Property\n' +
-                               '4. Mortgage/Loan Information\n' +
-                               '5. Property Prices\n' +
-                               '6. Available Locations\n' +
-                               '7. Tell a Joke\n' +
-                               '8. Exit\n';
-                               'Type Menu to return'
-            } else if (receivedMessage === '1') {
-                responseText = 'This is the Real Estate Bot designed to assist you with your property needs. You can buy, rent, or inquire about mortgages. Just select an option from the menu to get started!';
-            } else if (['2', '3', '4', '5', '6', '7', '8'].includes(receivedMessage)) {
-                userSessions[fromNumber].state = receivedMessage; // Update state
-                responseText = handleOptionSelection(receivedMessage);
-            } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
-                responseText = 'Hello! Welcome to Real Estate Bot. How can I assist you today? Type "Menu" or "1" for a list of commands.';
-            } else {
-                responseText = 'Welcome! Please type "Menu" or "1" for guidance on how to interact with me.';
-            }
-            break;
-
-        case '2':
-            responseText = 'We have several properties available for purchase. Which location do you want?';
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
-            break;
-
-        case '3':
-            responseText = 'Looking for a rental? We can help with that! Please specify your location and preferences.';
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
-            break;
-
-        case '4':
-            responseText = 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
-            break;
-
-        case '5':
-            responseText = 'Prices vary by location, size, and amenities. Can you provide more details?';
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
-            break;
-
-        case '6':
-            responseText = 'We operate in multiple areas. Can you specify which location you are interested in?';
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
-            break;
-
-        case '7':
-            const joke = await getRandomJoke();
-            responseText = joke;
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
-            break;
-
-        case '8':
-            responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
-            delete userSessions[fromNumber]; // Remove session data
-            break;
-
-        default:
-            responseText = 'Welcome! Please type "Menu" or "1" for guidance on how to interact with me.';
-            break;
-    }
-
     // Reset on goodbye
-    if (receivedMessage === 'bye' || receivedMessage === 'goodbye' || userSessions[fromNumber].state === '8') {
-        userSessions[fromNumber].state = 'menu'; // Reset state for a fresh start
+    if (receivedMessage === 'bye' || receivedMessage === 'goodbye') {
+        responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
+        delete userSessions[fromNumber]; // Remove session data
+    } else {
+        // State-based response handling
+        switch (userSessions[fromNumber].state) {
+            case 'menu':
+                if (receivedMessage === 'menu' || receivedMessage === '1') {
+                    responseText = 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
+                                   '1. Services\n' +
+                                   '2. Buy Property\n' +
+                                   '3. Rent Property\n' +
+                                   '4. Mortgage/Loan Information\n' +
+                                   '5. Property Prices\n' +
+                                   '6. Available Locations\n' +
+                                   '7. Tell a Joke\n' +
+                                   '8. Exit\n' +
+                                   'Type Menu to return';
+                } else if (receivedMessage === '1') {
+                    responseText = 'This is the Real Estate Bot designed to assist you with your property needs. You can buy, rent, or inquire about mortgages. Just select an option from the menu to get started!';
+                } else if (['2', '3', '4', '5', '6', '7', '8'].includes(receivedMessage)) {
+                    userSessions[fromNumber].state = receivedMessage; // Update state
+                    responseText = handleOptionSelection(receivedMessage);
+                } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
+                    responseText = 'Hello! Welcome to Real Estate Bot. How can I assist you today? Type "Menu" or "1" for a list of commands.';
+                } else {
+                    responseText = 'Welcome! Please type "Menu" or "1" for guidance on how to interact with me.';
+                }
+                break;
+
+            case '2':
+                responseText = 'We have several properties available for purchase. Which location do you want?';
+                userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+                break;
+
+            case '3':
+                responseText = 'Looking for a rental? We can help with that! Please specify your location and preferences.';
+                userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+                break;
+
+            case '4':
+                responseText = 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
+                userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+                break;
+
+            case '5':
+                responseText = 'Prices vary by location, size, and amenities. Can you provide more details?';
+                userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+                break;
+
+            case '6':
+                responseText = 'We operate in multiple areas. Can you specify which location you are interested in?';
+                userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+                break;
+
+            case '7':
+                const joke = await getRandomJoke();
+                responseText = joke;
+                userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+                break;
+
+            case '8':
+                responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
+                delete userSessions[fromNumber]; // Remove session data
+                break;
+
+            default:
+                responseText = 'Welcome! Please type "Menu" or "1" for guidance on how to interact with me.';
+                break;
+        }
     }
 
     message.body(responseText);
