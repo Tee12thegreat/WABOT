@@ -117,7 +117,7 @@ function handleOptionSelection(option) {
         case '6':
             return 'We operate in multiple areas. Can you specify which location you are interested in?';
         case '7':
-            return 'Let me tell you a joke!';
+            return 'Let me tell you a funny joke!';
         case '8':
             return 'Goodbye! Feel free to reach out anytime for real estate assistance.';
         default:
