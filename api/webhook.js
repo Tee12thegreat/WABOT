@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
                 userSessions[fromNumber].state = receivedMessage; // Update state
                 responseText = handleOptionSelection(receivedMessage);
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
-                responseText = 'Hello! Welcome to Real Estate Bot. How can I assist you today? Type "Menu" or "1" for a list of commands.';
+                responseText = 'Hello! Welcome to the Real Estate Bot. How can I assist you today? Type "Menu" or "1" for a list of commands.';
             } else {
                 responseText = 'Welcome! Please type "Menu" or "1" for guidance on how to interact with me.';
             }
