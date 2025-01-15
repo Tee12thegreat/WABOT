@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
                 responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
-            } else if (receivedMessage === 'clear chat') { // Handle Clear Chat command
+            } else if (['7'].includes(receivedMessage === 'clear chat')) { // Handle Clear Chat command
                 delete userSessions[fromNumber]; // Clear the session
                 responseText = 'Your chat has been cleared. Type "Menu" to start again.';
             } else {
