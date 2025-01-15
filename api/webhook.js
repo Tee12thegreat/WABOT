@@ -32,13 +32,17 @@ module.exports = async (req, res) => {
                                '3. Rent Property\n' +
                                '4. Mortgage/Loan Information\n' +
                                '5. Tell a Joke\n' +
-                               '6. Exit';
+                               '6. Exit\n' +
+                               '7. Clear Chat'; // Added Clear Chat option
             } else if (['2', '3'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage;
                 userSessions[fromNumber].subState = 'action';
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
                 responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
+            } else if (receivedMessage === 'clear chat') { // Handle Clear Chat command
+                delete userSessions[fromNumber]; // Clear the session
+                responseText = 'Your chat has been cleared. Type "Menu" to start again.';
             } else {
                 responseText = 'Please type "Menu" or "1" for guidance.';
             }
@@ -58,7 +62,6 @@ module.exports = async (req, res) => {
                     responseText = 'Please wait while we connect you with a real estate agent. They will contact you shortly.';
                     userSessions[fromNumber].state = 'menu';
                     userSessions[fromNumber].subState = null;
-                    // Here you would typically trigger an event to notify an agent or use a CRM system
                 } else {
                     responseText = 'Invalid selection. Please type "1" for brochure or "2" for agent contact.';
                 }
