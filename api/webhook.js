@@ -33,14 +33,14 @@ module.exports = async (req, res) => {
                                '4. Mortgage/Loan Information\n' +
                                '5. Tell a Joke\n' +
                                '6. Exit\n' +
-                               '7. Clear Chat'; // Added Clear Chat option
+                               '7. Type "clear chat" to delete our session data'; // Added Clear Chat option
             } else if (['2', '3'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage;
                 userSessions[fromNumber].subState = 'action';
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
                 responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
-            } else if (['7'].includes(receivedMessage === 'clear chat')) { // Handle Clear Chat command
+            } else if (receivedMessage === 'clear chat') { // Correctly handle Clear Chat command
                 delete userSessions[fromNumber]; // Clear the session
                 responseText = 'Your chat has been cleared. Type "Menu" to start again.';
             } else {
@@ -82,11 +82,6 @@ module.exports = async (req, res) => {
         case '6':
             responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
             delete userSessions[fromNumber]; // Remove session data
-            break;
-        
-        case '7':
-            responseText = 'Our chat has been cleared successfully';
-            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
             break;
 
         default:
