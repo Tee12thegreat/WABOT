@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
             if (userSessions[fromNumber].subState === 'action') {
                 if (receivedMessage === '1') {
                     // Use the public URL for the brochure
-                    const publicMediaUrl = 'https://tee12thegreat.github.io/brochure/assets/brochure.pdf'; // Update with your actual URL
+                    const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/property.pdf'; // Update with your actual URL
                     message.media(publicMediaUrl);
                     responseText = 'Here is the property listings brochure.';
                     userSessions[fromNumber].state = 'menu';
