@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
                     // Use the public URL for the brochure
                     const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/property.pdf'; // Update with your actual URL
                     message.media(publicMediaUrl);
-                    responseText = 'Here is the property listings brochure.';
+                    responseText = 'Here is the property listings brochure link.';
                     userSessions[fromNumber].state = 'menu';
                     userSessions[fromNumber].subState = null;
                 } else if (receivedMessage === '2') {

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brochure</title>
+    <script>
+        // Function to trigger the download automatically
+        window.onload = function() {
+            // Create an invisible link element
+            const link = document.createElement('a');
+            link.href = 'brochure.pdf'; // Path to your PDF file in the public folder
+            link.download = 'brochure.pdf'; // Name for the downloaded file
+
+            // Append to the body (required for Firefox)
+            document.body.appendChild(link);
+
+            // Trigger click on the link
+            link.click();
+
+            // Remove the link after triggering download
+            document.body.removeChild(link);
+        };
+    </script>
+</head>
+<body>
+    <h1>Your download should start shortly...</h1>
+    <p>If it doesn't, please <a href="brochure.pdf">click here</a>.</p>
+</body>
+</html>
