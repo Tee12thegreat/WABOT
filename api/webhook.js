@@ -1,12 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const { MessagingResponse } = require('twilio').twiml;
 
 // In-memory storage for user sessions (for simplicity)
 const userSessions = {};
-
-// Path to your PDF brochure on the server
-const PDF_PATH = path.join(__dirname, 'public', 'brochure.pdf'); // Update this path as necessary
 
 // Webhook endpoint
 module.exports = async (req, res) => {
@@ -38,15 +33,10 @@ module.exports = async (req, res) => {
                                '4. Mortgage/Loan Information\n' +
                                '5. Tell a Joke\n' +
                                '6. Exit';
-            } else if (receivedMessage === '1') {
-                responseText = 'This bot helps with real estate inquiries. Select an option to proceed.';
             } else if (['2', '3'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage;
                 userSessions[fromNumber].subState = 'action';
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
-            } else if (['4', '5', '6'].includes(receivedMessage)) {
-                userSessions[fromNumber].state = receivedMessage;
-                responseText = handleOptionSelection(receivedMessage);
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
                 responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
             } else {
@@ -58,8 +48,9 @@ module.exports = async (req, res) => {
         case '3':
             if (userSessions[fromNumber].subState === 'action') {
                 if (receivedMessage === '1') {
-                    // Send the PDF as a media message
-                    message.media(PDF_PATH);
+                    // Use the public URL for the brochure
+                    const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/brochure.pdf'; // Update with your actual URL
+                    message.media(publicMediaUrl);
                     responseText = 'Here is the property listings brochure.';
                     userSessions[fromNumber].state = 'menu';
                     userSessions[fromNumber].subState = null;
@@ -96,7 +87,7 @@ module.exports = async (req, res) => {
     }
 
     // Reset on goodbye
-    if (receivedMessage === 'bye' || receivedMessage === 'goodbye' || userSessions[fromNumber].state === '8') {
+    if (receivedMessage === 'bye' || receivedMessage === 'goodbye') {
         userSessions[fromNumber].state = 'menu';
         userSessions[fromNumber].subState = null;
     }
@@ -128,9 +119,9 @@ function handleOptionSelection(option) {
 // Function to get a random real estate-related joke
 async function getRandomJoke() {
     const realEstateJokes = [
-        'Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!',
-        'What do you call a real estate agent who can play the piano? A property note-ary!',
-        'Why was the real estate agent good at poker? Because they knew when to hold ‘em and when to fold ‘em in negotiations!'
+        "Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!",
+        "What do you call a real estate agent who can play the piano? A property note-ary!",
+        "Why was the real estate agent good at poker? Because they knew when to hold ‘em and when to fold ‘em in negotiations!"
     ];
     const randomIndex = Math.floor(Math.random() * realEstateJokes.length);
     return realEstateJokes[randomIndex];
