@@ -83,6 +83,11 @@ module.exports = async (req, res) => {
             responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
             delete userSessions[fromNumber]; // Remove session data
             break;
+        
+        case '7':
+            responseText = 'Our chat has been cleared successfully';
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
 
         default:
             responseText = 'Please type "Menu" or "1" for guidance.';
