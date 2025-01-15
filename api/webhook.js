@@ -1,20 +1,14 @@
 const { MessagingResponse } = require('twilio').twiml;
-const fetch = require('node-fetch');
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database(':memory:');
 
-// Setup database
-db.serialize(() => {
-    db.run("CREATE TABLE user_sessions (phone TEXT PRIMARY KEY, state TEXT, preferences TEXT)");
-    db.run("CREATE TABLE properties (id INTEGER PRIMARY KEY, location TEXT, price INTEGER, type TEXT)");
-});
+// In-memory storage for user sessions (for simplicity)
+const userSessions = {};
 
-// Sample data for testing
-db.run("INSERT INTO properties (location, price, type) VALUES ('New York', 500000, 'Apartment')");
-db.run("INSERT INTO properties (location, price, type) VALUES ('Los Angeles', 700000, 'House')");
-db.run("INSERT INTO properties (location, price, type) VALUES ('San Francisco', 1000000, 'Condo')");
+// URL for the PDF brochure
+const BROCHURE_URL = 'https://example.com/property-listings.pdf'; // Replace with actual URL
 
+// Webhook endpoint
 module.exports = async (req, res) => {
+    // Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).send('Method Not Allowed');
     }
@@ -22,86 +16,134 @@ module.exports = async (req, res) => {
     const messagingResponse = new MessagingResponse();
     const message = messagingResponse.message();
 
+    let receivedMessage = req.body.Body.toLowerCase().trim();
     const fromNumber = req.body.From;
-    const receivedMessage = req.body.Body.toLowerCase().trim();
 
-    // Fetch or initialize user session
-    let session;
-    db.get("SELECT state, preferences FROM user_sessions WHERE phone = ?", [fromNumber], (err, row) => {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        session = row || { state: 'menu', preferences: '{}' };
-        handleMessage(session, receivedMessage, message);
-    });
+    // Initialize user session if it doesn't exist
+    if (!userSessions[fromNumber]) {
+        userSessions[fromNumber] = { state: 'menu', subState: null };
+    }
+
+    let responseText;
+
+    switch (userSessions[fromNumber].state) {
+        case 'menu':
+            if (receivedMessage === 'menu' || receivedMessage === '1') {
+                responseText = 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
+                               '1. Help\n' +
+                               '2. Buy Property\n' +
+                               '3. Rent Property\n' +
+                               '4. Mortgage/Loan Information\n' +
+                               '5. Property Prices\n' +
+                               '6. Available Locations\n' +
+                               '7. Tell a Joke\n' +
+                               '8. Exit';
+            } else if (receivedMessage === '1') {
+                responseText = 'This bot helps with real estate inquiries. Select an option to proceed.';
+            } else if (['2', '3'].includes(receivedMessage)) {
+                userSessions[fromNumber].state = receivedMessage;
+                userSessions[fromNumber].subState = 'action';
+                responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
+            } else if (['4', '5', '6', '7', '8'].includes(receivedMessage)) {
+                userSessions[fromNumber].state = receivedMessage;
+                responseText = handleOptionSelection(receivedMessage);
+            } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
+                responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
+            } else {
+                responseText = 'Please type "Menu" or "1" for guidance.';
+            }
+            break;
+
+        case '2':
+        case '3':
+            if (userSessions[fromNumber].subState === 'action') {
+                if (receivedMessage === '1') {
+                    responseText = 'Here is the link to the property listings brochure: ' + BROCHURE_URL;
+                    userSessions[fromNumber].state = 'menu';
+                    userSessions[fromNumber].subState = null;
+                } else if (receivedMessage === '2') {
+                    responseText = 'Please wait while we connect you with a real estate agent. They will contact you shortly.';
+                    userSessions[fromNumber].state = 'menu';
+                    userSessions[fromNumber].subState = null;
+                    // Here you would typically trigger an event to notify an agent or use a CRM system
+                } else {
+                    responseText = 'Invalid selection. Please type "1" for brochure or "2" for agent contact.';
+                }
+            }
+            break;
+
+        case '4':
+            responseText = 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
+
+        case '5':
+            responseText = 'Prices vary by location, size, and amenities. Can you provide more details?';
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
+
+        case '6':
+            responseText = 'We operate in multiple areas. Can you specify which location you are interested in?';
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
+
+        case '7':
+            const joke = await getRandomJoke();
+            responseText = joke;
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
+
+        case '8':
+            responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
+            delete userSessions[fromNumber]; // Remove session data
+            break;
+
+        default:
+            responseText = 'Please type "Menu" or "1" for guidance.';
+            break;
+    }
+
+    // Reset on goodbye
+    if (receivedMessage === 'bye' || receivedMessage === 'goodbye' || userSessions[fromNumber].state === '8') {
+        userSessions[fromNumber].state = 'menu';
+        userSessions[fromNumber].subState = null;
+    }
+
+    message.body(responseText);
 
     res.writeHead(200, {'Content-Type': 'text/xml'});
     res.end(messagingResponse.toString());
 };
 
-function handleMessage(session, receivedMessage, message) {
-    let responseText;
-    let newState = session.state;
-    const preferences = JSON.parse(session.preferences);
-
-    switch (session.state) {
-        case 'menu':
-            responseText = handleMenu(receivedMessage, session);
-            newState = receivedMessage === '2' || receivedMessage === '3' ? 'location' : 'menu';
-            break;
-        
-        case 'location':
-            preferences.location = receivedMessage;
-            responseText = 'Great! Now, what is your budget?';
-            newState = 'budget';
-            break;
-
-        case 'budget':
-            preferences.budget = receivedMessage;
-            responseText = 'Thank you! Here are some properties that might interest you:';
-            newState = 'menu';
-            listProperties(message, preferences);
-            break;
-
-        default:
-            responseText = 'I did not understand that. Type "menu" for options.';
-            newState = 'menu';
-    }
-
-    message.body(responseText);
-    db.run("INSERT OR REPLACE INTO user_sessions (phone, state, preferences) VALUES (?, ?, ?)", [req.body.From, newState, JSON.stringify(preferences)]);
-}
-
-function handleMenu(receivedMessage, session) {
-    switch (receivedMessage) {
-        case '1':
-            return 'Here are your options:\n1. Help\n2. Buy Property\n3. Rent Property\n4. Mortgage/Loan Information\n5. Exit';
+// Function to handle option selection responses
+function handleOptionSelection(option) {
+    switch (option) {
         case '2':
+            return 'We have several properties available for purchase. Which location do you want?';
         case '3':
-            return 'Which location are you interested in?';
+            return 'Looking for a rental? We can help with that! Please specify your location and preferences.';
         case '4':
-            return 'Our mortgage advisors are available. Please call 1-800-REAL-ESTATE.';
+            return 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
         case '5':
-            return 'Goodbye!';
+            return 'Prices vary by location, size, and amenities. Can you provide more details?';
+        case '6':
+            return 'We operate in multiple areas. Can you specify which location you are interested in?';
+        case '7':
+            return 'Let me tell you a funny joke!';
+        case '8':
+            return 'Goodbye! Feel free to reach out anytime for real estate assistance.';
         default:
-            return 'Please choose an option by number: 1 for help, 2 for buying, 3 for renting, 4 for mortgage info, 5 to exit.';
+            return 'Invalid option. Please type "Menu" or "1" for guidance.';
     }
 }
 
-function listProperties(message, preferences) {
-    db.all("SELECT * FROM properties WHERE location LIKE ? AND price <= ?", 
-           [`%${preferences.location}%`, parseInt(preferences.budget) || 1000000], 
-           (err, rows) => {
-        if (err) {
-            console.error(err);
-            message.body('An error occurred while fetching properties.');
-        } else if (rows.length === 0) {
-            message.body('No properties found matching your criteria.');
-        } else {
-            rows.forEach(prop => {
-                message.body(`\n${prop.type} in ${prop.location} for $${prop.price}`);
-            });
-        }
-    });
+// Function to get a random real estate-related joke
+async function getRandomJoke() {
+    const realEstateJokes = [
+        'Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!',
+        'What do you call a real estate agent who can play the piano? A property note-ary!',
+        'Why was the real estate agent good at poker? Because they knew when to hold ‘em and when to fold ‘em in negotiations!'
+    ];
+    const randomIndex = Math.floor(Math.random() * realEstateJokes.length);
+    return realEstateJokes[randomIndex];
 }
