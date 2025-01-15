@@ -1,10 +1,12 @@
+const fs = require('fs');
+const path = require('path');
 const { MessagingResponse } = require('twilio').twiml;
 
 // In-memory storage for user sessions (for simplicity)
 const userSessions = {};
 
-// URL for the PDF brochure
-const BROCHURE_URL = 'https://example.com/property-listings.pdf'; // Replace with actual URL
+// Path to your PDF brochure on the server
+const PDF_PATH = path.join(__dirname, 'public', 'brochure.pdf'); // Update this path as necessary
 
 // Webhook endpoint
 module.exports = async (req, res) => {
@@ -58,7 +60,9 @@ module.exports = async (req, res) => {
         case '3':
             if (userSessions[fromNumber].subState === 'action') {
                 if (receivedMessage === '1') {
-                    responseText = 'Here is the link to the property listings brochure: ' + BROCHURE_URL;
+                    // Send the PDF as a media message
+                    message.media(PDF_PATH);
+                    responseText = 'Here is the property listings brochure.';
                     userSessions[fromNumber].state = 'menu';
                     userSessions[fromNumber].subState = null;
                 } else if (receivedMessage === '2') {
