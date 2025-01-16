@@ -2,9 +2,9 @@
   "name": "whatsapp_bot",
   "version": "1.0.0",
   "description": "A real estate chatbot using Vonage",
-  "main": "webhook.js", 
+  "main": "api/webhook.js", 
   "scripts": {
-    "start": "node webhook.js"
+    "start": "node api/webhook.js"
   },
   "dependencies": {
     "@vonage/server-sdk": "^3.19.3", 
