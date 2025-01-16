@@ -1,7 +1,7 @@
 const Vonage = require('@vonage/server-sdk');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config({ path: path.join(__dirname, '../.env') }); // Load environment variables from .env file
 
 // In-memory storage for user sessions (for simplicity)
 const userSessions = {};
@@ -107,7 +107,7 @@ module.exports = async (req, res) => {
 
     vonage.message.sendSms(from, to, text, {}, (err, responseData) => {
         if (err) {
-            console.log(err);
+            console.error('Error sending message:', err); // Log detailed error
             return res.status(500).send('Error sending message');
         } else {
             if (responseData.messages[0]['status'] === "0") {
