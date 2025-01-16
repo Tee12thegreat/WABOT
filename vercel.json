@@ -2,18 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "webhook.js",
+      "src": "api/webhook.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "/"
+      "src": "/webhook",
+      "dest": "/api/webhook.js"
     }
   ],
   "env": {
-    "VONAGE_API_KEY": "@vonage_api_key", 
-    "VONAGE_API_SECRET": "@vonage_api_secret" 
+    "VONAGE_API_KEY": "@vonage_api_key",
+    "VONAGE_API_SECRET": "@vonage_api_secret"
   }
 }
