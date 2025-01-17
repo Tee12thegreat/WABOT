@@ -1,9 +1,9 @@
 const Vonage = require('@vonage/server-sdk');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') }); // Ensure this path is correct
+require('dotenv').config({ path: path.join(__dirname, '../.env') }); // Load environment variables from .env file
 
-// In-memory storage for user sessions - consider using a database for production
+// In-memory storage for user sessions (for simplicity)
 const userSessions = {};
 
 // Initialize the Vonage SDK
@@ -27,96 +27,107 @@ module.exports = async (req, res) => {
         userSessions[fromNumber] = { state: 'menu', subState: null };
     }
 
-    let responseText = handleState(userSessions[fromNumber], receivedMessage);
+    let responseText;
+
+    switch (userSessions[fromNumber].state) {
+        case 'menu':
+            if (receivedMessage === 'menu' || receivedMessage === '1') {
+                responseText = 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
+                               '1. Help\n' +
+                               '2. Buy Property\n' +
+                               '3. Rent Property\n' +
+                               '4. Mortgage/Loan Information\n' +
+                               '5. Tell a Joke\n' +
+                               '6. Exit';
+            } else if (receivedMessage === '1') {
+                responseText = 'This bot helps with real estate inquiries. Select an option to proceed.';
+            } else if (['2', '3'].includes(receivedMessage)) {
+                userSessions[fromNumber].state = receivedMessage;
+                userSessions[fromNumber].subState = 'action';
+                responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
+            } else if (['4', '5', '6'].includes(receivedMessage)) {
+                userSessions[fromNumber].state = receivedMessage;
+                responseText = handleOptionSelection(receivedMessage);
+            } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
+                responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
+            } else {
+                responseText = 'Please type "Menu" or "1" for guidance.';
+            }
+            break;
+
+        case '2':
+        case '3':
+            if (userSessions[fromNumber].subState === 'action') {
+                if (receivedMessage === '1') {
+                    const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/index.html'; // Update with your actual URL
+                    responseText = 'Here is the link to the property listings brochure: ' + publicMediaUrl;
+                    userSessions[fromNumber].state = 'menu';
+                    userSessions[fromNumber].subState = null;
+                } else if (receivedMessage === '2') {
+                    responseText = 'Please wait while we connect you with a real estate agent. They will contact you shortly.';
+                    userSessions[fromNumber].state = 'menu';
+                    userSessions[fromNumber].subState = null;
+                } else {
+                    responseText = 'Invalid selection. Please type "1" for brochure or "2" for agent contact.';
+                }
+            }
+            break;
+
+        case '4':
+            responseText = 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
+
+        case '5':
+            const joke = await getRandomJoke();
+            responseText = joke;
+            userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
+            break;
+
+        case '6':
+            responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
+            delete userSessions[fromNumber]; // Remove session data
+            break;
+
+        default:
+            responseText = 'Please type "Menu" or "1" for guidance.';
+            break;
+    }
 
     // Reset on goodbye
     if (receivedMessage === 'bye' || receivedMessage === 'goodbye') {
-        responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
-        delete userSessions[fromNumber]; // Remove session data
+        userSessions[fromNumber].state = 'menu';
+        userSessions[fromNumber].subState = null;
     }
 
     // Send response via Vonage
-    const from = "VonageAPI";
+    const from = "VonageAPI"; // Sender ID
     const to = fromNumber;
     const text = responseText;
 
     vonage.message.sendSms(from, to, text, {}, (err, responseData) => {
         if (err) {
-            console.error('Error sending message:', err);
-            res.status(500).send('Error sending message');
+            console.error('Error sending message:', err); // Log detailed error
+            return res.status(500).send('Error sending message');
         } else {
             if (responseData.messages[0]['status'] === "0") {
                 console.log("Message sent successfully.");
-                res.status(200).send('Message sent successfully');
+                return res.status(200).send('Message sent successfully');
             } else {
                 console.log(`Message failed with error: ${responseData.messages[0]['error-text']}`);
-                res.status(500).send('Failed to send message');
+                return res.status(500).send('Failed to send message');
             }
         }
     });
 };
 
-// Function to handle different states of the conversation
-function handleState(session, message) {
-    switch (session.state) {
-        case 'menu':
-            return handleMenuState(message);
-        case '2':
-        case '3':
-            return handleBuyOrRentState(session, message);
-        case '4':
-            return 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
-        case '5':
-            return getRandomJoke();
-        case '6':
-            return 'Goodbye! Feel free to reach out anytime for real estate assistance.';
-        default:
-            return 'Please type "Menu" or "1" for guidance.';
-    }
-}
-
-// Function to handle menu state
-function handleMenuState(message) {
-    if (message === 'menu' || message === '1') {
-        return 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
-               '1. Help\n2. Buy Property\n3. Rent Property\n4. Mortgage/Loan Information\n5. Tell a Joke\n6. Exit';
-    } else if (message === '1') {
-        return 'This bot helps with real estate inquiries. Select an option to proceed.';
-    } else if (['2', '3', '4', '5', '6'].includes(message)) {
-        userSessions[req.body.msisdn].state = message;
-        return handleOptionSelection(message);
-    } else if (message === 'hello' || message === 'hi') {
-        return 'Hello! How can I assist you today? Type "Menu" for options.';
-    }
-    return 'Invalid input. Type "Menu" or "1" for guidance.';
-}
-
-// Function to handle buy or rent property states
-function handleBuyOrRentState(session, message) {
-    if (session.subState === 'action') {
-        if (message === '1') {
-            const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/index.html'; // Update with your actual URL
-            session.state = 'menu';
-            session.subState = null;
-            return 'Here is the link to the property listings brochure: ' + publicMediaUrl;
-        } else if (message === '2') {
-            session.state = 'menu';
-            session.subState = null;
-            return 'Please wait while we connect you with a real estate agent. They will contact you shortly.';
-        } else {
-            return 'Invalid selection. Please type "1" for brochure or "2" for agent contact.';
-        }
-    }
-    return 'Please select an action by typing "1" for brochure or "2" for agent contact.';
-}
-
 // Function to handle option selection responses
 function handleOptionSelection(option) {
     switch (option) {
         case '2':
+            return 'We have several properties available for purchase. Which location do you want?';
         case '3':
-            userSessions[req.body.msisdn].subState = 'action';
-            return 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
+            return 'Looking for a rental? We can help with that! Please specify your location and preferences.';
         case '4':
             return 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
         case '5':
@@ -129,7 +140,7 @@ function handleOptionSelection(option) {
 }
 
 // Function to get a random real estate-related joke
-function getRandomJoke() {
+async function getRandomJoke() {
     const realEstateJokes = [
         'Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!',
         'What do you call a real estate agent who can play the piano? A property note-ary!',
