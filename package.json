@@ -1,15 +1,12 @@
 {
-  "name": "real-estate-bot",
+  "name": "my-chatbot-project",
   "version": "1.0.0",
   "main": "api/webhook.js",
   "scripts": {
-    "start": "node api/webhook.js" 
+    "start": "vercel dev"
   },
   "dependencies": {
-    "@vonage/server-sdk": "^6.0.0",
-    "dotenv": "^8.2.0"
-  },
-  "engines": {
-    "node": "22.x"
+    "twilio": "^3.66.0", 
+    "node-fetch": "^2.6.1"
   }
 }

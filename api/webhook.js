@@ -1,16 +1,7 @@
-const Vonage = require('@vonage/server-sdk');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') }); // Load environment variables from .env file
+const { MessagingResponse } = require('twilio').twiml;
 
 // In-memory storage for user sessions (for simplicity)
 const userSessions = {};
-
-// Initialize the Vonage SDK
-const vonage = new Vonage({
-    apiKey: process.env.VONAGE_API_KEY,
-    apiSecret: process.env.VONAGE_API_SECRET,
-});
 
 // Webhook endpoint
 module.exports = async (req, res) => {
@@ -19,8 +10,11 @@ module.exports = async (req, res) => {
         return res.status(405).send('Method Not Allowed');
     }
 
-    let receivedMessage = req.body.text.toLowerCase().trim();
-    const fromNumber = req.body.msisdn; // Vonage uses 'msisdn' for phone number
+    const messagingResponse = new MessagingResponse();
+    const message = messagingResponse.message();
+
+    let receivedMessage = req.body.Body.toLowerCase().trim();
+    const fromNumber = req.body.From;
 
     // Initialize user session if it doesn't exist
     if (!userSessions[fromNumber]) {
@@ -38,18 +32,17 @@ module.exports = async (req, res) => {
                                '3. Rent Property\n' +
                                '4. Mortgage/Loan Information\n' +
                                '5. Tell a Joke\n' +
-                               '6. Exit';
-            } else if (receivedMessage === '1') {
-                responseText = 'This bot helps with real estate inquiries. Select an option to proceed.';
+                               '6. Exit\n' +
+                               '7. Type "clear chat" to delete our session data'; // Added Clear Chat option
             } else if (['2', '3'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage;
                 userSessions[fromNumber].subState = 'action';
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
-            } else if (['4', '5', '6'].includes(receivedMessage)) {
-                userSessions[fromNumber].state = receivedMessage;
-                responseText = handleOptionSelection(receivedMessage);
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
                 responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
+            } else if (receivedMessage === 'clear chat') { // Correctly handle Clear Chat command
+                delete userSessions[fromNumber]; // Clear the session
+                responseText = 'Your chat has been cleared. Type "Menu" to start again.';
             } else {
                 responseText = 'Please type "Menu" or "1" for guidance.';
             }
@@ -59,8 +52,10 @@ module.exports = async (req, res) => {
         case '3':
             if (userSessions[fromNumber].subState === 'action') {
                 if (receivedMessage === '1') {
+                    // Use the public URL for the brochure
                     const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/index.html'; // Update with your actual URL
-                    responseText = 'Here is the link to the property listings brochure: ' + publicMediaUrl;
+                    message.media(publicMediaUrl);
+                    responseText = 'Here is the property listings brochure link.';
                     userSessions[fromNumber].state = 'menu';
                     userSessions[fromNumber].subState = null;
                 } else if (receivedMessage === '2') {
@@ -100,25 +95,10 @@ module.exports = async (req, res) => {
         userSessions[fromNumber].subState = null;
     }
 
-    // Send response via Vonage
-    const from = "VonageAPI"; // Sender ID
-    const to = fromNumber;
-    const text = responseText;
+    message.body(responseText);
 
-    vonage.message.sendSms(from, to, text, {}, (err, responseData) => {
-        if (err) {
-            console.error('Error sending message:', err); // Log detailed error
-            return res.status(500).send('Error sending message');
-        } else {
-            if (responseData.messages[0]['status'] === "0") {
-                console.log("Message sent successfully.");
-                return res.status(200).send('Message sent successfully');
-            } else {
-                console.log(`Message failed with error: ${responseData.messages[0]['error-text']}`);
-                return res.status(500).send('Failed to send message');
-            }
-        }
-    });
+    res.writeHead(200, {'Content-Type': 'text/xml'});
+    res.end(messagingResponse.toString());
 };
 
 // Function to handle option selection responses
@@ -142,9 +122,9 @@ function handleOptionSelection(option) {
 // Function to get a random real estate-related joke
 async function getRandomJoke() {
     const realEstateJokes = [
-        'Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!',
-        'What do you call a real estate agent who can play the piano? A property note-ary!',
-        'Why was the real estate agent good at poker? Because they knew when to hold ‘em and when to fold ‘em in negotiations!'
+        "Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!",
+        "What do you call a real estate agent who can play the piano? A property note-ary!",
+        "Why was the real estate agent good at poker? Because they knew when to hold ‘em and when to fold ‘em in negotiations!"
     ];
     const randomIndex = Math.floor(Math.random() * realEstateJokes.length);
     return realEstateJokes[randomIndex];
