@@ -33,14 +33,14 @@ module.exports = async (req, res) => {
         case 'menu':
             if (receivedMessage === 'menu' || receivedMessage === '1') {
                 responseText = 'Welcome to Real Estate Bot! Please choose an option by typing the corresponding number:\n' +
-                               '1. Help\n' +
-                               '2. Buy Property\n' +
-                               '3. Rent Property\n' +
-                               '4. Mortgage/Loan Information\n' +
-                               '5. Real Estate Information\n' +
-                               '6. Exit\n' +
-                               '7. Type "clear chat" to delete our session data';
-            } else if (['2', '3'].includes(receivedMessage)) {
+                               '   Help\n' +
+                               '1. Buy Property\n' +
+                               '2. Rent Property\n' +
+                               '3. Mortgage/Loan Information\n' +
+                               '4. Real Estate Information\n' +
+                               '5. Exit\n' +
+                               '6. Type "clear chat" to delete our session data';
+            } else if (['1', '2'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage;
                 userSessions[fromNumber].subState = 'action';
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
@@ -54,8 +54,8 @@ module.exports = async (req, res) => {
             }
             break;
 
+        case '1':
         case '2':
-        case '3':
             if (userSessions[fromNumber].subState === 'action') {
                 if (receivedMessage === '1') {
                     const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/index.html'; // Update with your actual URL
@@ -71,17 +71,17 @@ module.exports = async (req, res) => {
             }
             break;
 
-        case '4': // Mortgage/Loan Information
+        case '3': // Mortgage/Loan Information
             responseText = await getOpenAIResponse("Explain mortgage loans and how they work.");
             userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
             break;
 
-        case '5': // Real Estate Information
+        case '4': // Real Estate Information
             responseText = await getOpenAIResponse("What is real estate and how does it work?");
             userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
             break;
 
-        case '6': // Exit
+        case '5': // Exit
             responseText = await getOpenAIResponse("Generate a friendly goodbye message for a real estate bot.");
             delete userSessions[fromNumber]; // Remove session data
             break;
