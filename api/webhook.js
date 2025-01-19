@@ -1,4 +1,6 @@
+require('dotenv').config(); // Load environment variables from .env file
 const { MessagingResponse } = require('twilio').twiml;
+const axios = require('axios');
 
 // In-memory storage for user sessions (for simplicity)
 const userSessions = {};
@@ -31,9 +33,9 @@ module.exports = async (req, res) => {
                                '2. Buy Property\n' +
                                '3. Rent Property\n' +
                                '4. Mortgage/Loan Information\n' +
-                               '5. Tell a Joke\n' +
+                               '5. Real Estate Information\n' +
                                '6. Exit\n' +
-                               '7. Type "clear chat" to delete our session data'; // Added Clear Chat option
+                               '7. Type "clear chat" to delete our session data';
             } else if (['2', '3'].includes(receivedMessage)) {
                 userSessions[fromNumber].state = receivedMessage;
                 userSessions[fromNumber].subState = 'action';
@@ -68,18 +70,17 @@ module.exports = async (req, res) => {
             }
             break;
 
-        case '4':
-            responseText = 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
+        case '4': // Mortgage/Loan Information
+            responseText = await getOpenAIResponse("Explain mortgage loans and how they work.");
             userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
             break;
 
-        case '5':
-            const joke = await getRandomJoke();
-            responseText = joke;
+        case '5': // Real Estate Information
+            responseText = await getOpenAIResponse("What is real estate and how does it work?");
             userSessions[fromNumber].state = 'menu'; // Reset state back to menu after this query
             break;
 
-        case '6':
+        case '6': // Exit
             responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
             delete userSessions[fromNumber]; // Remove session data
             break;
@@ -101,31 +102,22 @@ module.exports = async (req, res) => {
     res.end(messagingResponse.toString());
 };
 
-// Function to handle option selection responses
-function handleOptionSelection(option) {
-    switch (option) {
-        case '2':
-            return 'We have several properties available for purchase. Which location do you want?';
-        case '3':
-            return 'Looking for a rental? We can help with that! Please specify your location and preferences.';
-        case '4':
-            return 'Need help with mortgage options? We can connect you with our financial advisors. What is your budget?';
-        case '5':
-            return 'Let me tell you a funny joke!';
-        case '6':
-            return 'Goodbye! Feel free to reach out anytime for real estate assistance.';
-        default:
-            return 'Invalid option. Please type "Menu" or "1" for guidance.';
-    }
-}
+// Function to get responses from OpenAI API
+async function getOpenAIResponse(prompt) {
+    try {
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: "gpt-3.5-turbo", // or any other model you choose
+            messages: [{ role: "user", content: prompt }],
+        }, {
+            headers: {
+                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, // Accessing API key from .env file
+                "Content-Type": "application/json",
+            }
+        });
 
-// Function to get a random real estate-related joke
-async function getRandomJoke() {
-    const realEstateJokes = [
-        "Why do real estate agents always carry a compass? Because they need to find the right direction for your dream home!",
-        "What do you call a real estate agent who can play the piano? A property note-ary!",
-        "Why was the real estate agent good at poker? Because they knew when to hold ‘em and when to fold ‘em in negotiations!"
-    ];
-    const randomIndex = Math.floor(Math.random() * realEstateJokes.length);
-    return realEstateJokes[randomIndex];
+        return response.data.choices[0].message.content; // Extract the response text
+    } catch (error) {
+        console.error('Error fetching data from OpenAI:', error);
+        return "Sorry, I couldn't retrieve the information at this time.";
+    }
 }
