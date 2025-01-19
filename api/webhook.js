@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
                 delete userSessions[fromNumber]; // Clear the session
                 responseText = 'Your chat has been cleared. Type "Menu" to start again.';
             } else {
-                responseText = 'Please type "Menu" or "1" for guidance.';
+                responseText = 'Good day!. Please type "Menu" or "1" for guidance.';
             }
             break;
 
@@ -87,7 +87,7 @@ module.exports = async (req, res) => {
             break;
 
         default:
-            responseText = 'Please type "Menu" or "1" for guidance.';
+            responseText = 'Good day!. Please type "Menu" or "1" for guidance.';
             break;
     }
 
