@@ -5,6 +5,10 @@ const axios = require('axios');
 // In-memory storage for user sessions (for simplicity)
 const userSessions = {};
 
+// OpenAI API configuration
+const OPENAI_API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Ensure this is set in your .env file
+
 // Webhook endpoint
 module.exports = async (req, res) => {
     // Only allow POST requests
@@ -42,7 +46,7 @@ module.exports = async (req, res) => {
                 responseText = 'Would you like to:\n1. Download the property listings brochure\n2. Get in touch with a real estate agent';
             } else if (receivedMessage === 'hello' || receivedMessage === 'hi') {
                 responseText = 'Hello! How can I assist you today? Type "Menu" for options.';
-            } else if (receivedMessage === 'clear chat') { // Correctly handle Clear Chat command
+            } else if (receivedMessage === 'clear chat') {
                 delete userSessions[fromNumber]; // Clear the session
                 responseText = 'Your chat has been cleared. Type "Menu" to start again.';
             } else {
@@ -54,19 +58,16 @@ module.exports = async (req, res) => {
         case '3':
             if (userSessions[fromNumber].subState === 'action') {
                 if (receivedMessage === '1') {
-                    // Use the public URL for the brochure
                     const publicMediaUrl = 'https://wabot-ruby.vercel.app/public/index.html'; // Update with your actual URL
                     message.media(publicMediaUrl);
                     responseText = 'Here is the property listings brochure link.';
-                    userSessions[fromNumber].state = 'menu';
-                    userSessions[fromNumber].subState = null;
                 } else if (receivedMessage === '2') {
                     responseText = 'Please wait while we connect you with a real estate agent. They will contact you shortly.';
-                    userSessions[fromNumber].state = 'menu';
-                    userSessions[fromNumber].subState = null;
                 } else {
                     responseText = 'Invalid selection. Please type "1" for brochure or "2" for agent contact.';
                 }
+                userSessions[fromNumber].state = 'menu';
+                userSessions[fromNumber].subState = null;
             }
             break;
 
@@ -81,7 +82,7 @@ module.exports = async (req, res) => {
             break;
 
         case '6': // Exit
-            responseText = 'Goodbye! Feel free to reach out anytime for real estate assistance.';
+            responseText = await getOpenAIResponse("Generate a friendly goodbye message for a real estate bot.");
             delete userSessions[fromNumber]; // Remove session data
             break;
 
@@ -92,8 +93,8 @@ module.exports = async (req, res) => {
 
     // Reset on goodbye
     if (receivedMessage === 'bye' || receivedMessage === 'goodbye') {
-        userSessions[fromNumber].state = 'menu';
-        userSessions[fromNumber].subState = null;
+        responseText = await getOpenAIResponse("Generate a friendly goodbye message for a real estate bot.");
+        delete userSessions[fromNumber]; // Remove session data
     }
 
     message.body(responseText);
@@ -105,19 +106,20 @@ module.exports = async (req, res) => {
 // Function to get responses from OpenAI API
 async function getOpenAIResponse(prompt) {
     try {
-        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: "gpt-3.5-turbo", // or any other model you choose
+        const response = await axios.post(OPENAI_API_ENDPOINT, {
+            model: "gpt-3.5-turbo",
             messages: [{ role: "user", content: prompt }],
+            max_tokens: 150 // Adjust as necessary for your use case
         }, {
             headers: {
-                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, // Accessing API key from .env file
-                "Content-Type": "application/json",
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
             }
         });
 
-        return response.data.choices[0].message.content; // Extract the response text
+        return response.data.choices[0].message.content;
     } catch (error) {
         console.error('Error fetching data from OpenAI:', error);
-        return "Sorry, I couldn't retrieve the information at this time.";
+        return "Sorry, I couldn't retrieve the information at this time. Please try again later.";
     }
 }
